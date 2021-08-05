@@ -1,9 +1,11 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:test_app_newsapi/helper/data.dart';
 import 'package:test_app_newsapi/helper/news.dart';
 import 'package:test_app_newsapi/models/ArticleModel.dart';
 import 'package:test_app_newsapi/models/category_model.dart';
+import 'package:test_app_newsapi/views/article_view.dart';
 
 class Home extends StatefulWidget {
   final String title;
@@ -91,6 +93,7 @@ class _HomeState extends State<Home> {
                       title: article[index].title,
                       desc: article[index].description,
                       imageURL: article[index].urlToImage,
+                      url: article[index].url,
                     );
                   }),
                 ),
@@ -147,36 +150,75 @@ class CategoryTitle extends StatelessWidget {
 }
 
 class BlogTile extends StatelessWidget {
-  const BlogTile({Key key, this.imageURL, this.title, this.desc})
+  const BlogTile({Key key, this.imageURL, this.title, this.desc, this.url})
       : super(key: key);
 
-  final String imageURL, title, desc;
+  final String imageURL, title, desc, url;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.only(left: 10, right: 10, bottom: 15),
-      child: Column(
-        children: <Widget>[
-          Image.network(imageURL),
-          Text(
-            title,
-            style: TextStyle(
-                fontFamily: 'Times New Roman',
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                fontStyle: FontStyle.normal),
-          ),
-          Text(
-            desc,
-            style: TextStyle(
-                fontFamily: 'Times New Roman',
-                fontSize: 13,
-                fontStyle: FontStyle.normal),
-            textAlign: TextAlign.justify,
-          ),
-        ],
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(_createRoute(url));
+      },
+      child: Container(
+        margin: EdgeInsets.only(left: 10, right: 10, bottom: 15),
+        child: Column(
+          children: <Widget>[
+            Image.network(
+              imageURL,
+              fit: BoxFit.fill,
+              loadingBuilder: (BuildContext context, Widget child,
+                  ImageChunkEvent loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Center(
+                  child: CircularProgressIndicator(
+                    value: loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded /
+                            loadingProgress.expectedTotalBytes
+                        : null,
+                  ),
+                );
+              },
+            ),
+            Text(
+              title,
+              style: TextStyle(
+                  fontFamily: 'Times New Roman',
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  fontStyle: FontStyle.normal),
+            ),
+            Text(
+              desc,
+              style: TextStyle(
+                  fontFamily: 'Times New Roman',
+                  fontSize: 13,
+                  fontStyle: FontStyle.normal),
+              textAlign: TextAlign.justify,
+            ),
+          ],
+        ),
       ),
     );
   }
+}
+
+Route _createRoute(String url) {
+  return PageRouteBuilder(
+    pageBuilder: (context, animation, secondaryAnimation) =>
+        Article_view(url: url),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      const begin = Offset(0.0, 1.0);
+      const end = Offset.zero;
+      const curve = Curves.ease;
+
+      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+      return SlideTransition(
+        position: animation.drive(tween),
+        child: child,
+      );
+    },
+  );
 }
